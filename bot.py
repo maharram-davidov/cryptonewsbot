@@ -183,8 +183,9 @@ Bot normal işləyir ✅
 
     def admin_command(self, update: Update, context: CallbackContext):
         """Admin komandası (sync v13)"""
+        from config import ADMIN_USER_IDS
         user_id = update.effective_user.id
-        admin_ids = [12345678]  # Buraya öz Telegram ID-nizi əlavə edin
+        admin_ids = ADMIN_USER_IDS
         if user_id not in admin_ids:
             update.message.reply_text("⛔ Bu komanda yalnız adminlər üçündür.")
             return

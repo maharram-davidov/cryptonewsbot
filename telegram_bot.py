@@ -123,7 +123,7 @@ Bot istifadəyə hazırdır! ✨
   • Qısa yorum
 
 **Problemlər üçün əlaqə:**
-Admin: @your_telegram_username
+Admin: @davudov07
 """
         await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
     
@@ -195,10 +195,11 @@ Bot normal işləyir ✅
     
     async def admin_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Admin komandası"""
+        from config import ADMIN_USER_IDS
         user_id = update.effective_user.id
         
         # Sadə admin yoxlaması (daha güclü yoxlama lazımdır)
-        admin_ids = [12345678]  # Buraya öz Telegram ID-nizi əlavə edin
+        admin_ids = ADMIN_USER_IDS
         
         if user_id not in admin_ids:
             await update.message.reply_text("⛔ Bu komanda yalnız adminlər üçündür.")

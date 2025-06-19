@@ -28,7 +28,7 @@ NEWS_SOURCES = {
 
 # Bot Settings
 BOT_SETTINGS = {
-    'check_interval': 300,  # 5 minutes
+    'check_interval': 90,  # 1.5 minutes
     'max_news_per_check': 5,
     'ai_analysis': True,
     'send_to_channels': True
@@ -55,6 +55,10 @@ Format:
 ⚠️ Risk: [Aşağı/Orta/Yüksək]
 """
 }
+
+# Admin Configuration
+ADMIN_USER_IDS_STR = os.getenv('ADMIN_USER_IDS', '5387921878')  # Default admin ID
+ADMIN_USER_IDS = [int(id.strip()) for id in ADMIN_USER_IDS_STR.split(',') if id.strip()]
 
 # Logging Configuration
 LOG_LEVEL = 'INFO'
