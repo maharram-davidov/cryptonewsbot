@@ -128,6 +128,8 @@ AI_SETTINGS = {
 1. **CoinDesk**: RSS feed (`https://www.coindesk.com/arc/outboundfeeds/rss/`)
 2. **The Block**: RSS feed (`https://www.theblock.co/rss.xml`)
 3. **Cointelegraph**: RSS feed (`https://cointelegraph.com/rss`)
+4. **Crypto News**: RSS feed (`https://crypto.news/feed/`)
+5. **NewsBTC**: RSS feed (`https://www.newsbtc.com/feed/`)
 
 **Qeyd**: Bütün mənbələr RSS vasitəsi ilə çəkilir, API key tələb etmir.
 

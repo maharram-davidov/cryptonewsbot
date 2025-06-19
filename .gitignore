@@ -247,6 +247,13 @@ downloads/
 cache/
 .cache/
 
+# Bot runtime data files
+seen_news.json
+test_seen_news.json
+
+# Test files  
+test_duplicate_prevention.py
+
 # Test files and coverage
 tests/coverage/
 .coverage

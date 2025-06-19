@@ -165,8 +165,10 @@ Admin: @davudov07
 
 **Mənbələr:**
 📰 CoinDesk - RSS
-📰 CryptoPanic - API
+📰 The Block - RSS
 📰 Cointelegraph - RSS
+📰 Crypto News - RSS
+📰 NewsBTC - RSS
 
 Bot normal işləyir ✅
 """
@@ -278,8 +280,10 @@ Bot normal işləyir ✅
             # Emoji seçir
             source_emoji = {
                 'CoinDesk': '📰',
-                'CryptoPanic': '🚨', 
-                'Cointelegraph': '📊'
+                'The Block': '🔷',
+                'Cointelegraph': '📊',
+                'Crypto News': '🌐',
+                'NewsBTC': '₿'
             }.get(news.source, '📰')
             
             message = f"""

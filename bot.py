@@ -71,6 +71,8 @@ Salamlar! Mən sizə real-time kripto xəbərlərini AI analizi ilə birlikdə �
 • CoinDesk
 • The Block  
 • Cointelegraph
+• Crypto News
+• NewsBTC
 
 🧠 **AI Analizi:**
 • Market təsiri (Bullish/Bearish/Neytral)
@@ -161,6 +163,8 @@ Admin: @your_telegram_username
 📰 CoinDesk - RSS
 📰 The Block - RSS
 📰 Cointelegraph - RSS
+📰 Crypto News - RSS
+📰 NewsBTC - RSS
 
 Bot normal işləyir ✅
 """
@@ -189,17 +193,26 @@ Bot normal işləyir ✅
         if user_id not in admin_ids:
             update.message.reply_text("⛔ Bu komanda yalnız adminlər üçündür.")
             return
+        stats = self.news_fetcher.get_seen_news_stats()
         admin_text = f"""
 🔐 **Admin Panel**
 
 📊 **Statistika:**
 👥 Abunəçilər: {len(self.subscribers)}
-📰 Görülən xəbərlər: {len(self.news_fetcher.seen_news)}
+📰 Görülən xəbərlər (memory): {stats.get('total_seen', 0)}
+💾 Fayl records: {stats.get('file_entries', 0)}
 
 ⚙️ **Konfiqurasiya:**
 ⏱️ Yoxlama intervalı: {BOT_SETTINGS['check_interval']}s
 📄 Max xəbər: {BOT_SETTINGS['max_news_per_check']}
 🤖 AI: {'ON' if BOT_SETTINGS['ai_analysis'] else 'OFF'}
+
+🔍 **Son görülən xəbərlər:**"""
+        
+        for news in stats.get('recent_news', [])[:3]:
+            admin_text += f"\n• {news['title']} ({news['source']})"
+        
+        admin_text += """
 
 **Admin Komandaları:**
 /broadcast <mesaj> - Bütün abunəçilərə mesaj
@@ -297,7 +310,9 @@ Admin: @your_telegram_username
             source_emoji = {
                 'CoinDesk': '📰',
                 'The Block': '🔷',
-                'Cointelegraph': '📊'
+                'Cointelegraph': '📊',
+                'Crypto News': '🌐',
+                'NewsBTC': '₿'
             }.get(news.source, '📰')
             
             # Azərbaycan saatına çevirmək

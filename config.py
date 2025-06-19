@@ -23,6 +23,14 @@ NEWS_SOURCES = {
     'cointelegraph': {
         'rss_url': 'https://cointelegraph.com/rss',
         'name': 'Cointelegraph'
+    },
+    'cryptonews': {
+        'rss_url': 'https://crypto.news/feed/',
+        'name': 'Crypto News'
+    },
+    'newsbtc': {
+        'rss_url': 'https://www.newsbtc.com/feed/',
+        'name': 'NewsBTC'
     }
 }
 
