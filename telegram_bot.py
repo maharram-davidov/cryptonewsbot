@@ -41,6 +41,7 @@ class CryptoNewsBot:
         self.application.add_handler(CommandHandler("status", self.status_command))
         self.application.add_handler(CommandHandler("latest", self.latest_command))
         self.application.add_handler(CommandHandler("admin", self.admin_command))
+        self.application.add_handler(CommandHandler("reset_news", self.reset_news_command))
         
         # Callback query handler
         self.application.add_handler(CallbackQueryHandler(self.button_handler))
@@ -71,8 +72,9 @@ Salamlar! Mən sizə real-time kripto xəbərlərini AI analizi ilə birlikdə �
 
 📰 **Xəbər Mənbələri:**
 • CoinDesk
-• CryptoPanic  
-• Cointelegraph
+• The Block
+• Crypto News
+• NewsBTC
 
 🧠 **AI Analizi:**
 • Market təsiri (Bullish/Bearish/Neytral)
@@ -113,6 +115,9 @@ Bot istifadəyə hazırdır! ✨
 🔹 `/latest` - Son 5 xəbəri göstər
 🔹 `/status` - Bot statusu və statistika
 🔹 `/help` - Bu kömək mətnini göstər
+
+**Admin Komandaları:**
+🔸 `/reset_news` - Görülən xəbərləri təmizlə (köhnə xəbər problemini həll edir)
 
 **Xəbər Formatı:**
 📰 Başlıq
@@ -166,7 +171,6 @@ Admin: @davudov07
 **Mənbələr:**
 📰 CoinDesk - RSS
 📰 The Block - RSS
-📰 Cointelegraph - RSS
 📰 Crypto News - RSS
 📰 NewsBTC - RSS
 
@@ -195,6 +199,50 @@ Bot normal işləyir ✅
             logger.error(f"Latest komanda xətası: {e}")
             await update.message.reply_text("❌ Xəbərlər yüklənərkən xəta baş verdi.")
     
+    async def reset_news_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Görülən xəbərləri reset etmək komandası (yalnız admin)"""
+        from config import ADMIN_USER_IDS
+        user_id = update.effective_user.id
+        
+        if user_id not in ADMIN_USER_IDS:
+            await update.message.reply_text("❌ Bu komandaya icazəniz yoxdur.")
+            return
+        
+        await update.message.reply_text("🚨 Görülən xəbər məlumatları təmizlənir...")
+        
+        try:
+            # Emergency reset et
+            success = self.news_fetcher.emergency_reset_seen_news()
+            
+            if success:
+                # Statistika al
+                stats = self.news_fetcher.get_seen_news_stats()
+                
+                message = f"""
+🚨 **EMERGENCY RESET TƏMİZLİK**
+
+✅ Bütün görülən xəbər məlumatları təmizləndi!
+
+📊 **Yeni Durum:**
+• Görülən xəbərlər: {stats.get('total_seen', 0)}
+• Yaddaş cache: Təmizləndi
+• Fayl: Yenidən yaradıldı
+
+⚠️ **Nəticə:** 
+İndi bot yalnız YENİ xəbərləri göndərəcək.
+Köhnə xəbərlər bir daha gəlməyəcək.
+
+✨ Sistem hazırdır!
+"""
+                await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+                logger.warning(f"🚨 Admin {user_id} tərəfindən emergency reset edildi")
+            else:
+                await update.message.reply_text("❌ Reset zamanı xəta baş verdi. Log-lara baxın.")
+                
+        except Exception as e:
+            logger.error(f"Reset komanda xətası: {e}")
+            await update.message.reply_text("❌ Reset komandası işləmədi. Texniki xəta.")
+
     async def admin_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Admin komandası"""
         from config import ADMIN_USER_IDS

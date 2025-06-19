@@ -20,10 +20,7 @@ NEWS_SOURCES = {
         'rss_url': 'https://www.theblock.co/rss.xml',
         'name': 'The Block'
     },
-    'cointelegraph': {
-        'rss_url': 'https://cointelegraph.com/rss',
-        'name': 'Cointelegraph'
-    },
+
     'cryptonews': {
         'rss_url': 'https://crypto.news/feed/',
         'name': 'Crypto News'

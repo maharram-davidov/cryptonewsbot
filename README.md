@@ -4,7 +4,7 @@ Real-time kripto xəbərlərini AI analizi ilə birlikdə paylaşan Telegram bot
 
 ## 🎯 Əsas Funksiyalar
 
-- **📰 Real-time xəbər paylaşımı**: CoinDesk, The Block, Cointelegraph kimi mənbələrdən
+- **📰 Real-time xəbər paylaşımı**: CoinDesk, The Block, Crypto News, NewsBTC kimi mənbələrdən
 - **🧠 AI analizi**: Hər xəbər üçün Google Gemini 2.0 Flash ilə market təsiri və risk analizi
 - **🕐 Azərbaycan saatı**: Xəbərlərdə tarix və saat AZT (Asia/Baku) zona saatı ilə göstərilir
 - **📊 Sinxron arxitektura**: Stabil və sürətli işləmə üçün sinxron kod strukturu
@@ -127,9 +127,8 @@ AI_SETTINGS = {
 
 1. **CoinDesk**: RSS feed (`https://www.coindesk.com/arc/outboundfeeds/rss/`)
 2. **The Block**: RSS feed (`https://www.theblock.co/rss.xml`)
-3. **Cointelegraph**: RSS feed (`https://cointelegraph.com/rss`)
-4. **Crypto News**: RSS feed (`https://crypto.news/feed/`)
-5. **NewsBTC**: RSS feed (`https://www.newsbtc.com/feed/`)
+3. **Crypto News**: RSS feed (`https://crypto.news/feed/`)
+4. **NewsBTC**: RSS feed (`https://www.newsbtc.com/feed/`)
 
 **Qeyd**: Bütün mənbələr RSS vasitəsi ilə çəkilir, API key tələb etmir.
 

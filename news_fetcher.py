@@ -19,8 +19,15 @@ class NewsItem:
         self.source = source
         self.published_date = published_date
         self.summary = summary
-        # URL-ə və başlığa əsaslanan unikal hash
-        self.hash = abs(hash(f"{title.strip().lower()}{url}"))
+        
+        # Daha güvənli hash mexanizmi
+        # URL və başlığı normalize et
+        normalized_url = url.split('?')[0].strip().lower()  # Query parametrləri sil
+        normalized_title = ''.join(title.strip().lower().split())  # Boşluqları sil
+        
+        # Hash yaratmaq üçün normalize edilmiş məlumatları istifadə et
+        hash_string = f"{normalized_title}{normalized_url}{source.lower()}"
+        self.hash = abs(hash(hash_string))
 
     def __eq__(self, other):
         return isinstance(other, NewsItem) and self.hash == other.hash
@@ -50,24 +57,60 @@ class NewsFetcher:
             if os.path.exists(self.seen_news_file):
                 with open(self.seen_news_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    # Hash və tarix məlumatlarını yükləyir
-                    current_time = datetime.now()
-                    cutoff_time = current_time - timedelta(hours=24)
                     
-                    for item in data:
-                        try:
-                            # Yalnız son 24 saat ərzindəki xəbərləri saxlayır
-                            saved_at = datetime.fromisoformat(item.get('saved_at', item.get('published_date')))
+                # Daha sərt tarix filteri - yalnız son 6 saat ərzindəki xəbərlər
+                current_time = datetime.now()
+                cutoff_time = current_time - timedelta(hours=6)  # 24-dən 6 saata endirildi
+                
+                valid_items = []
+                for item in data:
+                    try:
+                        # Tarix yoxlaması daha dəqiq
+                        saved_at_str = item.get('saved_at')
+                        if not saved_at_str:
+                            # Köhnə formatda tarix yoxdursa, published_date istifadə et
+                            saved_at_str = item.get('published_date')
+                        
+                        if saved_at_str:
+                            saved_at = datetime.fromisoformat(saved_at_str)
+                            # Yalnız son 6 saat ərzindəki xəbərləri saxla
                             if saved_at > cutoff_time:
                                 self.seen_news.add(item['hash'])
-                        except Exception as e:
-                            logger.warning(f"Xəbər item yüklənmə xətası: {e}")
-                            continue
+                                valid_items.append(item)
+                        else:
+                            # Tarix məlumatı olmayan köhnə xəbərləri atla
+                            logger.debug(f"Tarix məlumatı olmayan xəbər atlanıldı: {item.get('title', 'N/A')[:50]}")
                             
-                logger.info(f"{len(self.seen_news)} əvvəlki xəbər yükləndi")
+                    except Exception as e:
+                        logger.warning(f"Xəbər item yüklənmə xətası: {e}")
+                        continue
+                
+                # Fayl yenilənmiş məlumatlarla saxla (köhnələri sil)
+                if len(valid_items) < len(data):
+                    try:
+                        with open(self.seen_news_file, 'w', encoding='utf-8') as f:
+                            json.dump(valid_items, f, ensure_ascii=False, indent=2)
+                        logger.info(f"Köhnə {len(data) - len(valid_items)} xəbər fayldan silindi")
+                    except Exception as e:
+                        logger.error(f"Fayl yenilənmə xətası: {e}")
+                
+                logger.info(f"{len(self.seen_news)} yeni xəbər hash-i yükləndi (son 6 saat)")
+            else:
+                logger.info("seen_news.json faylı tapılmadı, yeni yaradılacaq")
+                self.seen_news = set()
+                
         except Exception as e:
             logger.error(f"Görülən xəbərlər yüklənmə xətası: {e}")
+            # Problem olduqda, təmiz başla
             self.seen_news = set()
+            if os.path.exists(self.seen_news_file):
+                try:
+                    # Korrupted faylı backup kimi saxla
+                    backup_file = f"{self.seen_news_file}.backup"
+                    os.rename(self.seen_news_file, backup_file)
+                    logger.info(f"Korrupted fayl {backup_file} olaraq backup edildi")
+                except Exception:
+                    pass
 
     def _save_seen_news(self, news_item: NewsItem = None):
         """Görülən xəbərləri fayla saxlayır"""
@@ -188,36 +231,7 @@ class NewsFetcher:
             logger.error(f"The Block RSS xətası: {e}")
             return []
 
-    def fetch_cointelegraph_news(self) -> List[NewsItem]:
-        try:
-            news_items = []
-            source_config = NEWS_SOURCES['cointelegraph']
-            feed = feedparser.parse(source_config['rss_url'])
-            for entry in feed.entries[:10]:
-                try:
-                    title = entry.title
-                    url = entry.link
-                    summary = entry.summary if hasattr(entry, 'summary') else ""
-                    published = datetime(*entry.published_parsed[:6])
-                    if published > datetime.now() - timedelta(days=1):
-                        content = self._fetch_article_content(url)
-                        news_item = NewsItem(
-                            title=title,
-                            content=content,
-                            url=url,
-                            source=source_config['name'],
-                            published_date=published,
-                            summary=summary
-                        )
-                        if not self._is_news_seen(news_item):
-                            news_items.append(news_item)
-                            self._mark_news_as_seen(news_item)
-                except Exception as e:
-                    logger.error(f"Cointelegraph xəbər emal xətası: {e}")
-            return news_items
-        except Exception as e:
-            logger.error(f"Cointelegraph RSS xətası: {e}")
-            return []
+
 
     def _fetch_article_content(self, url: str) -> str:
         try:
@@ -304,7 +318,6 @@ class NewsFetcher:
             results = [
                 self.fetch_coindesk_news(),
                 self.fetch_theblock_news(),
-                self.fetch_cointelegraph_news(),
                 self.fetch_cryptonews_news(),
                 self.fetch_newsbtc_news()
             ]
@@ -346,6 +359,29 @@ class NewsFetcher:
         except Exception as e:
             logger.error(f"Temizlik xətası: {e}")
     
+    def emergency_reset_seen_news(self):
+        """Təcili vəziyyətdə bütün görülən xəbərləri təmizləyir"""
+        try:
+            # Memory cache-i təmizlə
+            self.seen_news.clear()
+            
+            # Faylı backup et və sil
+            if os.path.exists(self.seen_news_file):
+                backup_name = f"{self.seen_news_file}.emergency_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                os.rename(self.seen_news_file, backup_name)
+                logger.warning(f"🚨 EMERGENCY RESET: seen_news fayl backup edildi: {backup_name}")
+            
+            # Yeni boş fayl yarat
+            with open(self.seen_news_file, 'w', encoding='utf-8') as f:
+                json.dump([], f)
+            
+            logger.warning("🚨 EMERGENCY RESET: Bütün görülən xəbər məlumatları təmizləndi!")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Emergency reset xətası: {e}")
+            return False
+
     def get_seen_news_stats(self) -> Dict:
         """Görülən xəbərlər haqqında statistika qaytarır"""
         try:

@@ -70,7 +70,6 @@ Salamlar! Mən sizə real-time kripto xəbərlərini AI analizi ilə birlikdə �
 📰 **Xəbər Mənbələri:**
 • CoinDesk
 • The Block  
-• Cointelegraph
 • Crypto News
 • NewsBTC
 
@@ -162,7 +161,6 @@ Admin: @your_telegram_username
 **Mənbələr:**
 📰 CoinDesk - RSS
 📰 The Block - RSS
-📰 Cointelegraph - RSS
 📰 Crypto News - RSS
 📰 NewsBTC - RSS
 
