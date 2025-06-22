@@ -231,8 +231,6 @@ class NewsFetcher:
             logger.error(f"The Block RSS xətası: {e}")
             return []
 
-
-
     def _fetch_article_content(self, url: str) -> str:
         try:
             response = requests.get(url, timeout=10)
@@ -407,4 +405,51 @@ class NewsFetcher:
             return stats
         except Exception as e:
             logger.error(f"Statistika alınma xətası: {e}")
-            return {'total_seen': len(self.seen_news), 'error': str(e)} 
+            return {'total_seen': len(self.seen_news), 'error': str(e)}
+
+    def get_last_24_hours_news(self) -> List[NewsItem]:
+        """Son 24 saatın xəbərlərini qaytarır (günlük özet üçün)"""
+        try:
+            news_items = []
+            current_time = datetime.now()
+            cutoff_time = current_time - timedelta(hours=24)
+            
+            # Fayldan son 24 saatın xəbərlərini yükləyir
+            if os.path.exists(self.seen_news_file):
+                with open(self.seen_news_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    
+                for item in data:
+                    try:
+                        # Tarix yoxlaması
+                        saved_at_str = item.get('saved_at') or item.get('published_date')
+                        if saved_at_str:
+                            saved_at = datetime.fromisoformat(saved_at_str)
+                            if saved_at > cutoff_time:
+                                # NewsItem yaradır (content məlumatı olmadığı üçün dummy content)
+                                news_item = NewsItem(
+                                    title=item['title'],
+                                    content=f"Xəbər mənbəsi: {item['source']}",  # Dummy content
+                                    url=item['url'],
+                                    source=item['source'],
+                                    published_date=saved_at,
+                                    summary=""
+                                )
+                                news_items.append(news_item)
+                    except Exception as e:
+                        logger.warning(f"24 saat xəbər parse xətası: {e}")
+                        continue
+            
+            # Tarihe göre sırala (en yeniler önce)
+            news_items.sort(key=lambda x: x.published_date, reverse=True)
+            
+            logger.info(f"Son 24 saatda {len(news_items)} xəbər tapıldı")
+            return news_items
+            
+        except Exception as e:
+            logger.error(f"24 saat xəbər yükləmə xətası: {e}")
+            return []
+    
+    async def close_session(self):
+        """HTTP sessiyonu bağlayır (async uyumluluk üçün)"""
+        pass 

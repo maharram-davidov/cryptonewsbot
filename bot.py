@@ -1,4 +1,6 @@
 import logging
+import json
+import os
 import pytz
 from datetime import datetime
 from typing import List, Dict, Set
@@ -24,6 +26,83 @@ class CryptoNewsBot:
         self.subscribers: Set[int] = set()
         self.admin_users: Set[int] = set()
         self.last_news_check = datetime.now()
+        self.subscribers_file = 'subscribers.json'
+        self.user_settings_file = 'user_settings.json'
+        self.user_settings: Dict[int, Dict] = {}
+        
+        # Başlangıçta subscribe verilerini yükle
+        self._load_subscribers()
+        self._load_user_settings()
+        
+    def _load_subscribers(self):
+        """Subscribe verilerini JSON dosyasından yükler"""
+        try:
+            if os.path.exists(self.subscribers_file):
+                with open(self.subscribers_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.subscribers = set(data.get('subscribers', []))
+                    logger.info(f"📂 {len(self.subscribers)} abunəçi yükləndi")
+            else:
+                logger.info("📂 Subscribe faylı tapılmadı, yeni fayl yaradılacaq")
+        except Exception as e:
+            logger.error(f"Subscribe fayl yükləmə xətası: {e}")
+            self.subscribers = set()
+    
+    def _save_subscribers(self):
+        """Subscribe verilerini JSON dosyasına saxlayır"""
+        try:
+            data = {
+                'subscribers': list(self.subscribers),
+                'last_updated': datetime.now().isoformat(),
+                'total_count': len(self.subscribers)
+            }
+            with open(self.subscribers_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            logger.info(f"💾 {len(self.subscribers)} abunəçi faylda saxlanıldı")
+        except Exception as e:
+            logger.error(f"Subscribe fayl saxlama xətası: {e}")
+    
+    def _load_user_settings(self):
+        """Kullanıcı ayarlarını JSON dosyasından yükler (sync)"""
+        try:
+            if os.path.exists(self.user_settings_file):
+                with open(self.user_settings_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    # String key'leri int'e çevir
+                    self.user_settings = {int(k): v for k, v in data.items()}
+                    logger.info(f"⚙️ {len(self.user_settings)} kullanıcı ayarı yükləndi")
+            else:
+                logger.info("⚙️ Kullanıcı ayarları faylı tapılmadı, yeni yaradılacaq")
+                self.user_settings = {}
+        except Exception as e:
+            logger.error(f"Kullanıcı ayarları yükləmə xətası: {e}")
+            self.user_settings = {}
+    
+    def _save_user_settings(self):
+        """Kullanıcı ayarlarını JSON dosyasına kaydet (sync)"""
+        try:
+            # Int key'leri string'e çevir JSON için
+            data = {str(k): v for k, v in self.user_settings.items()}
+            with open(self.user_settings_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            logger.info(f"💾 {len(self.user_settings)} kullanıcı ayarı saxlanıldı")
+        except Exception as e:
+            logger.error(f"Kullanıcı ayarları saxlama xətası: {e}")
+    
+    def _get_user_settings(self, user_id: int) -> Dict:
+        """Kullanıcının ayarlarını getirir, yoksa varsayılan ayarları döndürür (sync)"""
+        default_settings = {
+            'instant_notifications': True,  # Anlık haberler açık
+            'daily_summary': True,         # Günlük özet açık
+            'joined_date': datetime.now().isoformat(),
+            'last_activity': datetime.now().isoformat()
+        }
+        
+        if user_id not in self.user_settings:
+            self.user_settings[user_id] = default_settings.copy()
+            self._save_user_settings()
+        
+        return self.user_settings[user_id]
 
     def initialize(self):
         """Botu başladır (sync v13)"""
@@ -40,6 +119,7 @@ class CryptoNewsBot:
         dispatcher.add_handler(CommandHandler("status", self.status_command))
         dispatcher.add_handler(CommandHandler("latest", self.latest_command))
         dispatcher.add_handler(CommandHandler("admin", self.admin_command))
+        dispatcher.add_handler(CommandHandler("daily_summary", self.manual_daily_summary_command))
         dispatcher.add_handler(CallbackQueryHandler(self.button_handler))
         
         job_queue = self.updater.job_queue
@@ -53,6 +133,13 @@ class CryptoNewsBot:
                 self.daily_cleanup_job,
                 time=datetime.now().time().replace(hour=0, minute=0)
             )
+            
+            # Günlük özet işi (gece 00:05'te)
+            job_queue.run_daily(
+                self.daily_summary_job,
+                time=datetime.now().time().replace(hour=0, minute=5)
+            )
+            
             logger.info("Job queue konfiqurasiya edildi")
         else:
             logger.warning("JobQueue mövcud deyil")
@@ -132,9 +219,11 @@ Admin: @your_telegram_username
             update.message.reply_text("🔔 Siz artıq xəbər abunəçisisiniz!")
         else:
             self.subscribers.add(user_id)
+            self._save_subscribers()  # Dosyaya kaydet
             update.message.reply_text(
                 f"✅ Təbriklər {user_name}! Artıq kripto xəbərləri alacaqsınız.\n\n"
-                f"📊 Abunəçi sayı: {len(self.subscribers)}"
+                f"📊 Abunəçi sayı: {len(self.subscribers)}\n"
+                f"💾 Abunəlik saxlanıldı!"
             )
             logger.info(f"Yeni abunəçi: {user_id} ({user_name})")
 
@@ -143,6 +232,7 @@ Admin: @your_telegram_username
         user_id = update.effective_user.id
         if user_id in self.subscribers:
             self.subscribers.remove(user_id)
+            self._save_subscribers()  # Dosyaya kaydet
             update.message.reply_text("❌ Abunəlikdən çıxdınız. İstədiyiniz vaxt yenidən abunə ola bilərsiniz.")
         else:
             update.message.reply_text("ℹ️ Siz artıq abunə deyilsiniz.")
@@ -232,11 +322,13 @@ Bot normal işləyir ✅
                 query.edit_message_text("🔔 Siz artıq xəbər abunəçisisiniz!")
             else:
                 self.subscribers.add(user_id)
+                self._save_subscribers()  # Dosyaya kaydet
                 query.edit_message_text(
                     f"✅ Təbriklər {user_name}! Artıq kripto xəbərləri alacaqsınız.\n\n"
-                    f"📊 Abunəçi sayı: {len(self.subscribers)}"
+                    f"📊 Abunəçi sayı: {len(self.subscribers)}\n"
+                    f"💾 Abunəlik saxlanıldı!"
                 )
-                logger.info(f"Yeni abunəçi: {user_id} ({user_name})")
+                logger.info(f"Yeni abunəçi (button): {user_id} ({user_name})")
         elif query.data == "latest":
             query.edit_message_text("🔍 Son xəbərlər axtarılır...")
             try:
@@ -296,6 +388,76 @@ Admin: @your_telegram_username
             logger.info("Günlük temizlik tamamlandı")
         except Exception as e:
             logger.error(f"Temizlik xətası: {e}")
+    
+    def daily_summary_job(self, context: CallbackContext):
+        """Günlük özet işi - gece 00:05'te son 24 saatın xəbərlərini özetləyir (sync v13)"""
+        try:
+            if not self.subscribers:
+                logger.info("Günlük özet: Abunəçi yoxdur, özet göndərilmədi")
+                return
+            
+            logger.info("🌙 Günlük özet hazırlanır...")
+            
+            # Son 24 saatın xəbərlərini al
+            last_24h_news = self.news_fetcher.get_last_24_hours_news()
+            
+            if not last_24h_news:
+                summary_message = """📅 **GÜNLÜK ÖZET**
+🕐 Tarix: {date}
+
+📭 Son 24 saatda kripto bazarında önemli xəbər tapılmadı.
+
+🌙 Sabaha qədər sakit gecə! ✨""".format(date=datetime.now().strftime('%d.%m.%Y'))
+            else:
+                # AI ile özet hazırla (sync versiyonda async çalışmaz, fallback kullan)
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    summary = loop.run_until_complete(self.ai_analyzer.generate_daily_summary(last_24h_news))
+                except:
+                    summary = self.ai_analyzer._fallback_daily_summary(last_24h_news)
+                
+                if summary:
+                    summary_message = f"""🌙 **GÜNLÜK XƏBƏRLƏRİN ÖZETİ**
+
+{summary}
+
+---
+🤖 Bu özet AI tərəfindən hazırlanıb
+🕐 Göndərilmə vaxtı: {datetime.now().strftime('%d.%m.%Y %H:%M')}"""
+                else:
+                    summary_message = """📅 **GÜNLÜK ÖZET**
+🕐 Tarix: {date}
+
+❌ AI özet sistemində texniki xəta baş verdi.
+📰 Son 24 saatda {count} xəbər qeydə alındı.
+
+🔧 Sistemimiz düzəlişə çalışacaq.""".format(
+                        date=datetime.now().strftime('%d.%m.%Y'),
+                        count=len(last_24h_news)
+                    )
+            
+            # Bütün abunəçilərə günlük özeti göndər
+            self.broadcast_message(summary_message)
+            
+            logger.info(f"✅ Günlük özet {len(self.subscribers)} abunəçiyə göndərildi")
+            
+        except Exception as e:
+            logger.error(f"Günlük özet işi xətası: {e}")
+            
+            # Xəta mesajı
+            error_message = f"""🚨 **GÜNLÜK ÖZET XƏTAsi**
+🕐 Tarix: {datetime.now().strftime('%d.%m.%Y')}
+
+❌ Günlük özet hazırlanarkən texniki xəta baş verdi.
+🔧 Sistem yenidən cəhd edəcək.
+
+Admin məlumatlandırıldı."""
+            
+            try:
+                self.broadcast_message(error_message)
+            except:
+                pass
 
     def format_news_message(self, news: NewsItem) -> str:
         """Xəbər mesajını formatlaşdırır (sync v13)"""
@@ -347,10 +509,82 @@ Admin: @your_telegram_username
             except Exception as e:
                 logger.warning(f"User {user_id} göndərim xətası: {e}")
                 failed_sends.append(user_id)
-        for user_id in failed_sends:
-            if user_id in self.subscribers:
-                self.subscribers.remove(user_id)
-                logger.info(f"User {user_id} abunəlikdən çıxarıldı (göndərim xətası)")
+        
+        # Uğursuz göndərimləri temizlə ve dosyaya kaydet
+        if failed_sends:
+            for user_id in failed_sends:
+                if user_id in self.subscribers:
+                    self.subscribers.remove(user_id)
+                    logger.info(f"User {user_id} abunəlikdən çıxarıldı (göndərim xətası)")
+            self._save_subscribers()  # Güncel listeyi dosyaya kaydet
+
+    def manual_daily_summary_command(self, update: Update, context: CallbackContext):
+        """Manuel günlük özet komandası (admin - sync v13)"""
+        from config import ADMIN_USER_IDS
+        user_id = update.effective_user.id
+        
+        if user_id not in ADMIN_USER_IDS:
+            update.message.reply_text("❌ Bu komandaya icazəniz yoxdur.")
+            return
+        
+        update.message.reply_text("🔍 Günlük özet hazırlanır... (Bu bir neçə saniyə süre bilər)")
+        
+        try:
+            # Günlük özet işini manuel çalıştır
+            if not self.subscribers:
+                update.message.reply_text("⚠️ Abunəçi yoxdur, özet göndərilmədi.")
+                return
+            
+            # Son 24 saatın xəbərlərini al
+            last_24h_news = self.news_fetcher.get_last_24_hours_news()
+            
+            if not last_24h_news:
+                summary_message = f"""📅 **MANUEL GÜNLÜK ÖZET**
+🕐 Tarix: {datetime.now().strftime('%d.%m.%Y %H:%M')}
+
+📭 Son 24 saatda kripto bazarında önemli xəbər tapılmadı.
+
+🔧 Admin tərəfindən manuel göndərildi."""
+            else:
+                # AI ile özet hazırla (sync versiyonda async çalışmaz, fallback kullan)
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    summary = loop.run_until_complete(self.ai_analyzer.generate_daily_summary(last_24h_news))
+                except:
+                    summary = self.ai_analyzer._fallback_daily_summary(last_24h_news)
+                
+                if summary:
+                    summary_message = f"""📋 **MANUEL GÜNLÜK ÖZET**
+
+{summary}
+
+---
+🤖 Bu özet AI tərəfindən hazırlanıb
+🔧 Admin tərəfindən manuel göndərildi
+🕐 Göndərilmə vaxtı: {datetime.now().strftime('%d.%m.%Y %H:%M')}"""
+                else:
+                    summary_message = f"""📅 **MANUEL GÜNLÜK ÖZET**
+🕐 Tarix: {datetime.now().strftime('%d.%m.%Y %H:%M')}
+
+❌ AI özet sistemində texniki xəta baş verdi.
+📰 Son 24 saatda {len(last_24h_news)} xəbər qeydə alındı.
+
+🔧 Admin tərəfindən manuel göndərildi."""
+            
+            # Bütün abunəçilərə özeti göndər
+            self.broadcast_message(summary_message)
+            
+            update.message.reply_text(
+                f"✅ Manuel günlük özet {len(self.subscribers)} abunəçiyə göndərildi!\n"
+                f"📊 Analiz edilən xəbər sayı: {len(last_24h_news)}"
+            )
+            
+            logger.info(f"🔧 Admin {user_id} tərəfindən manuel günlük özet göndərildi")
+            
+        except Exception as e:
+            logger.error(f"Manuel günlük özet xətası: {e}")
+            update.message.reply_text("❌ Manuel günlük özet hazırlanarkən xəta baş verdi.")
 
     def start_bot(self):
         """Botu başladır (sync v13)"""

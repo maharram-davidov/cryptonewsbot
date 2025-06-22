@@ -250,6 +250,10 @@ cache/
 # Bot runtime data files
 seen_news.json
 test_seen_news.json
+subscribers.json
+user_settings.json
+
+
 
 # Test files  
 test_duplicate_prevention.py
