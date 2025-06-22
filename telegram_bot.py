@@ -2,6 +2,8 @@ import asyncio
 import logging
 import json
 import os
+import time
+import traceback
 from datetime import datetime
 from typing import List, Dict, Set
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -15,10 +17,34 @@ from config import TELEGRAM_BOT_TOKEN, BOT_SETTINGS
 from news_fetcher import NewsFetcher, NewsItem
 from ai_analyzer import AIAnalyzer
 
+# Enhanced logging setup
 logger = logging.getLogger(__name__)
+
+# Performance tracking
+class PerformanceTracker:
+    def __init__(self):
+        self.metrics = {}
+    
+    def start_timer(self, operation: str) -> str:
+        timer_id = f"{operation}_{time.time()}"
+        self.metrics[timer_id] = time.time()
+        return timer_id
+    
+    def end_timer(self, timer_id: str, operation: str, user_id: int = None):
+        if timer_id in self.metrics:
+            duration = time.time() - self.metrics[timer_id]
+            user_info = f" [User: {user_id}]" if user_id else ""
+            logger.info(f"⏱️ PERFORMANCE: {operation} completed in {duration:.2f}s{user_info}")
+            del self.metrics[timer_id]
+            return duration
+        return None
+
+performance = PerformanceTracker()
 
 class CryptoNewsBot:
     def __init__(self):
+        logger.info("🚀 SYSTEM: CryptoNewsBot initialization started")
+        
         self.token = TELEGRAM_BOT_TOKEN
         self.news_fetcher = NewsFetcher()
         self.ai_analyzer = AIAnalyzer()
@@ -30,64 +56,127 @@ class CryptoNewsBot:
         self.user_settings_file = 'user_settings.json'
         self.user_settings: Dict[int, Dict] = {}
         
+        # Statistics tracking
+        self.stats = {
+            'total_commands': 0,
+            'total_news_sent': 0,
+            'total_errors': 0,
+            'startup_time': datetime.now(),
+            'last_restart': datetime.now()
+        }
+        
+        logger.info("📊 SYSTEM: Bot statistics initialized")
+        
         # Başlangıçta subscribe verilerini yükle
         self._load_subscribers()
         self._load_user_settings()
         
+        logger.info("✅ SYSTEM: CryptoNewsBot initialization completed successfully")
+    
+    def _log_user_action(self, user_id: int, action: str, details: str = "", success: bool = True):
+        """Kullanıcı aktivitelerini detaylı loglar"""
+        status = "✅ SUCCESS" if success else "❌ FAILED"
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        logger.info(f"👤 USER_ACTION [{timestamp}]: User {user_id} - {action} - {status} {details}")
+        
+        # İstatistikleri güncelle
+        if success:
+            self.stats['total_commands'] += 1
+    
+    def _log_system_event(self, event_type: str, message: str, level: str = "info"):
+        """Sistem olaylarını loglar"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        log_message = f"🔧 SYSTEM [{timestamp}]: {event_type} - {message}"
+        
+        if level == "error":
+            logger.error(log_message)
+            self.stats['total_errors'] += 1
+        elif level == "warning":
+            logger.warning(log_message)
+        else:
+            logger.info(log_message)
+        
     def _load_subscribers(self):
         """Subscribe verilerini JSON dosyasından yükler"""
+        timer_id = performance.start_timer("load_subscribers")
         try:
             if os.path.exists(self.subscribers_file):
                 with open(self.subscribers_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     self.subscribers = set(data.get('subscribers', []))
-                    logger.info(f"📂 {len(self.subscribers)} abunəçi yükləndi")
+                    self._log_system_event("DATA_LOAD", f"{len(self.subscribers)} abunəçi yükləndi")
+                    logger.info(f"📂 SUBSCRIBERS: Loaded {len(self.subscribers)} subscribers from file")
             else:
-                logger.info("📂 Subscribe faylı tapılmadı, yeni fayl yaradılacaq")
+                self._log_system_event("DATA_LOAD", "Subscribe faylı tapılmadı, yeni fayl yaradılacaq")
+                logger.info("📂 SUBSCRIBERS: No existing subscribers file found, will create new")
         except Exception as e:
-            logger.error(f"Subscribe fayl yükləmə xətası: {e}")
+            self._log_system_event("DATA_LOAD", f"Subscribe fayl yükləmə xətası: {e}", "error")
+            logger.error(f"💥 ERROR: Failed to load subscribers: {e}")
+            logger.error(f"📍 TRACEBACK: {traceback.format_exc()}")
             self.subscribers = set()
+        finally:
+            performance.end_timer(timer_id, "load_subscribers")
     
     def _save_subscribers(self):
         """Subscribe verilerini JSON dosyasına saxlayır"""
+        timer_id = performance.start_timer("save_subscribers")
         try:
             data = {
                 'subscribers': list(self.subscribers),
                 'last_updated': datetime.now().isoformat(),
-                'total_count': len(self.subscribers)
+                'total_count': len(self.subscribers),
+                'save_timestamp': time.time()
             }
             with open(self.subscribers_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-            logger.info(f"💾 {len(self.subscribers)} abunəçi faylda saxlanıldı")
+            self._log_system_event("DATA_SAVE", f"{len(self.subscribers)} abunəçi faylda saxlanıldı")
+            logger.info(f"💾 SUBSCRIBERS: Saved {len(self.subscribers)} subscribers to file")
         except Exception as e:
-            logger.error(f"Subscribe fayl saxlama xətası: {e}")
+            self._log_system_event("DATA_SAVE", f"Subscribe fayl saxlama xətası: {e}", "error")
+            logger.error(f"💥 ERROR: Failed to save subscribers: {e}")
+            logger.error(f"📍 TRACEBACK: {traceback.format_exc()}")
+        finally:
+            performance.end_timer(timer_id, "save_subscribers")
     
     def _load_user_settings(self):
         """Kullanıcı ayarlarını JSON dosyasından yükler"""
+        timer_id = performance.start_timer("load_user_settings")
         try:
             if os.path.exists(self.user_settings_file):
                 with open(self.user_settings_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     # String key'leri int'e çevir
                     self.user_settings = {int(k): v for k, v in data.items()}
-                    logger.info(f"⚙️ {len(self.user_settings)} kullanıcı ayarı yükləndi")
+                    self._log_system_event("SETTINGS_LOAD", f"{len(self.user_settings)} kullanıcı ayarı yükləndi")
+                    logger.info(f"⚙️ USER_SETTINGS: Loaded {len(self.user_settings)} user settings")
             else:
-                logger.info("⚙️ Kullanıcı ayarları faylı tapılmadı, yeni yaradılacaq")
+                self._log_system_event("SETTINGS_LOAD", "Kullanıcı ayarları faylı tapılmadı, yeni yaradılacaq")
+                logger.info("⚙️ USER_SETTINGS: No existing settings file found, will create new")
                 self.user_settings = {}
         except Exception as e:
-            logger.error(f"Kullanıcı ayarları yükləmə xətası: {e}")
+            self._log_system_event("SETTINGS_LOAD", f"Kullanıcı ayarları yükləmə xətası: {e}", "error")
+            logger.error(f"💥 ERROR: Failed to load user settings: {e}")
+            logger.error(f"📍 TRACEBACK: {traceback.format_exc()}")
             self.user_settings = {}
+        finally:
+            performance.end_timer(timer_id, "load_user_settings")
     
     def _save_user_settings(self):
         """Kullanıcı ayarlarını JSON dosyasına kaydet"""
+        timer_id = performance.start_timer("save_user_settings")
         try:
             # Int key'leri string'e çevir JSON için
             data = {str(k): v for k, v in self.user_settings.items()}
             with open(self.user_settings_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
-            logger.info(f"💾 {len(self.user_settings)} kullanıcı ayarı saxlanıldı")
+            self._log_system_event("SETTINGS_SAVE", f"{len(self.user_settings)} kullanıcı ayarı saxlanıldı")
+            logger.info(f"💾 USER_SETTINGS: Saved {len(self.user_settings)} user settings")
         except Exception as e:
-            logger.error(f"Kullanıcı ayarları saxlama xətası: {e}")
+            self._log_system_event("SETTINGS_SAVE", f"Kullanıcı ayarları saxlama xətası: {e}", "error")
+            logger.error(f"💥 ERROR: Failed to save user settings: {e}")
+            logger.error(f"📍 TRACEBACK: {traceback.format_exc()}")
+        finally:
+            performance.end_timer(timer_id, "save_user_settings")
     
     def _get_user_settings(self, user_id: int) -> Dict:
         """Kullanıcının ayarlarını getirir, yoksa varsayılan ayarları döndürür"""
@@ -160,6 +249,11 @@ class CryptoNewsBot:
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Start komandası"""
         user_id = update.effective_user.id
+        user_name = update.effective_user.first_name or "Unknown"
+        timer_id = performance.start_timer("start_command")
+        
+        self._log_user_action(user_id, "START_COMMAND", f"User: {user_name}")
+        logger.info(f"🏁 COMMAND: /start received from user {user_id} ({user_name})")
         welcome_text = f"""
 🤖 **Kripto Xəbər Botu**
 
@@ -194,11 +288,18 @@ Bot istifadəyə hazırdır! ✨
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        await update.message.reply_text(
-            welcome_text,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=reply_markup
-        )
+        try:
+            await update.message.reply_text(
+                welcome_text,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=reply_markup
+            )
+            self._log_user_action(user_id, "START_COMMAND", "Welcome message sent successfully", True)
+        except Exception as e:
+            self._log_user_action(user_id, "START_COMMAND", f"Failed to send welcome: {e}", False)
+            logger.error(f"💥 ERROR: Failed to send start message to {user_id}: {e}")
+        finally:
+            performance.end_timer(timer_id, "start_command", user_id)
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Kömək komandası"""
@@ -233,19 +334,32 @@ Admin: @davudov07
     async def subscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Abunəlik komandası"""
         user_id = update.effective_user.id
-        user_name = update.effective_user.first_name
+        user_name = update.effective_user.first_name or "Unknown"
+        timer_id = performance.start_timer("subscribe_command")
         
-        if user_id in self.subscribers:
-            await update.message.reply_text("🔔 Siz artıq xəbər abunəçisisiniz!")
-        else:
-            self.subscribers.add(user_id)
-            self._save_subscribers()  # Dosyaya kaydet
-            await update.message.reply_text(
-                f"✅ Təbriklər {user_name}! Artıq kripto xəbərləri alacaqsınız.\n\n"
-                f"📊 Abunəçi sayı: {len(self.subscribers)}\n"
-                f"💾 Abunəlik saxlanıldı!"
-            )
-            logger.info(f"Yeni abunəçi: {user_id} ({user_name})")
+        self._log_user_action(user_id, "SUBSCRIBE_COMMAND", f"User: {user_name}")
+        logger.info(f"📝 COMMAND: /subscribe received from user {user_id} ({user_name})")
+        
+        try:
+            if user_id in self.subscribers:
+                await update.message.reply_text("🔔 Siz artıq xəbər abunəçisisiniz!")
+                self._log_user_action(user_id, "SUBSCRIBE", "Already subscribed", True)
+            else:
+                self.subscribers.add(user_id)
+                self._save_subscribers()  # Dosyaya kaydet
+                await update.message.reply_text(
+                    f"✅ Təbriklər {user_name}! Artıq kripto xəbərləri alacaqsınız.\n\n"
+                    f"📊 Abunəçi sayı: {len(self.subscribers)}\n"
+                    f"💾 Abunəlik saxlanıldı!"
+                )
+                self._log_user_action(user_id, "SUBSCRIBE", f"New subscriber added. Total: {len(self.subscribers)}", True)
+                logger.info(f"🎉 NEW_SUBSCRIBER: User {user_id} ({user_name}) subscribed. Total: {len(self.subscribers)}")
+        except Exception as e:
+            self._log_user_action(user_id, "SUBSCRIBE_COMMAND", f"Error: {e}", False)
+            logger.error(f"💥 ERROR: Subscribe command failed for {user_id}: {e}")
+            await update.message.reply_text("❌ Abunəlik zamanı xəta baş verdi.")
+        finally:
+            performance.end_timer(timer_id, "subscribe_command", user_id)
     
     async def unsubscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Abunəlikdən çıxış komandası"""

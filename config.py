@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -65,6 +66,84 @@ Format:
 ADMIN_USER_IDS_STR = os.getenv('ADMIN_USER_IDS', '5387921878')  # Default admin ID
 ADMIN_USER_IDS = [int(id.strip()) for id in ADMIN_USER_IDS_STR.split(',') if id.strip()]
 
-# Logging Configuration
-LOG_LEVEL = 'INFO'
-LOG_FILE = 'crypto_bot.log' 
+# Enhanced Logging Configuration
+LOGGING_CONFIG = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'detailed': {
+            'format': '%(asctime)s | %(levelname)-8s | %(name)-20s | %(funcName)-20s | Line:%(lineno)-4d | %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+        'simple': {
+            'format': '%(asctime)s | %(levelname)-8s | %(message)s',
+            'datefmt': '%H:%M:%S'
+        },
+        'performance': {
+            'format': '%(asctime)s | PERF | %(message)s',
+            'datefmt': '%H:%M:%S'
+        }
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'INFO',
+            'formatter': 'simple',
+            'stream': 'ext://sys.stdout'
+        },
+        'file_main': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'level': 'INFO',
+            'formatter': 'detailed',
+            'filename': 'logs/crypto_bot.log',
+            'maxBytes': 10485760,  # 10MB
+            'backupCount': 5,
+            'encoding': 'utf-8'
+        },
+        'file_error': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'level': 'ERROR',
+            'formatter': 'detailed',
+            'filename': 'logs/crypto_bot_errors.log',
+            'maxBytes': 5242880,  # 5MB
+            'backupCount': 3,
+            'encoding': 'utf-8'
+        },
+        'file_performance': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'level': 'INFO',
+            'formatter': 'performance',
+            'filename': 'logs/performance.log',
+            'maxBytes': 5242880,  # 5MB
+            'backupCount': 2,
+            'encoding': 'utf-8'
+        }
+    },
+    'loggers': {
+        '': {  # Root logger
+            'handlers': ['console', 'file_main', 'file_error'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'performance': {
+            'handlers': ['file_performance'],
+            'level': 'INFO',
+            'propagate': False
+        }
+    }
+}
+
+# Log Level Configuration
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
+if LOG_LEVEL not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
+    LOG_LEVEL = 'INFO'
+
+# Performance Monitoring Settings
+PERFORMANCE_SETTINGS = {
+    'track_commands': True,
+    'track_news_fetch': True,
+    'track_ai_analysis': True,
+    'track_broadcasting': True,
+    'log_slow_operations': True,
+    'slow_operation_threshold': 5.0  # seconds
+} 

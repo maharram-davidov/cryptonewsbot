@@ -5,10 +5,14 @@ from datetime import datetime, timedelta
 import logging
 import json
 import os
+import time
+import traceback
 from typing import List, Dict, Optional
 from config import NEWS_SOURCES
 
+# Enhanced logging setup
 logger = logging.getLogger(__name__)
+performance_logger = logging.getLogger('performance')
 
 class NewsItem:
     def __init__(self, title: str, content: str, url: str, source: str, 
@@ -311,24 +315,60 @@ class NewsFetcher:
             return []
 
     def fetch_all_news(self) -> List[NewsItem]:
+        start_time = time.time()
+        logger.info("🔍 NEWS_FETCH: Starting comprehensive news fetch from all sources")
         all_news = []
+        
+        sources = [
+            ("CoinDesk", self.fetch_coindesk_news),
+            ("The Block", self.fetch_theblock_news),
+            ("Crypto News", self.fetch_cryptonews_news),
+            ("NewsBTC", self.fetch_newsbtc_news)
+        ]
+        
         try:
-            results = [
-                self.fetch_coindesk_news(),
-                self.fetch_theblock_news(),
-                self.fetch_cryptonews_news(),
-                self.fetch_newsbtc_news()
-            ]
-            for result in results:
-                if isinstance(result, list):
-                    all_news.extend(result)
-                elif isinstance(result, Exception):
-                    logger.error(f"Xəbər çəkmə xətası: {result}")
+            for source_name, fetch_func in sources:
+                source_start = time.time()
+                try:
+                    logger.info(f"📰 NEWS_FETCH: Fetching from {source_name}")
+                    result = fetch_func()
+                    
+                    source_duration = time.time() - source_start
+                    performance_logger.info(f"NEWS_FETCH_{source_name.replace(' ', '_')} completed in {source_duration:.2f}s")
+                    
+                    if isinstance(result, list):
+                        all_news.extend(result)
+                        logger.info(f"✅ NEWS_FETCH: {source_name} returned {len(result)} new articles")
+                    else:
+                        logger.warning(f"⚠️  NEWS_FETCH: {source_name} returned unexpected result type")
+                        
+                except Exception as e:
+                    source_duration = time.time() - source_start
+                    logger.error(f"💥 NEWS_FETCH: {source_name} failed after {source_duration:.2f}s: {e}")
+                    logger.error(f"📍 NEWS_FETCH: {source_name} traceback: {traceback.format_exc()}")
+            
+            # Sort by publication date
             all_news.sort(key=lambda x: x.published_date, reverse=True)
-            logger.info(f"Cəmi {len(all_news)} yeni xəbər tapıldı")
+            
+            total_duration = time.time() - start_time
+            performance_logger.info(f"NEWS_FETCH_ALL completed in {total_duration:.2f}s")
+            
+            logger.info(f"🎉 NEWS_FETCH: Successfully fetched {len(all_news)} total new articles")
+            
+            # Log source breakdown
+            source_breakdown = {}
+            for news in all_news:
+                source_breakdown[news.source] = source_breakdown.get(news.source, 0) + 1
+            
+            for source, count in source_breakdown.items():
+                logger.info(f"📊 NEWS_BREAKDOWN: {source}: {count} articles")
+            
             return all_news
+            
         except Exception as e:
-            logger.error(f"Ümumi xəbər çəkmə xətası: {e}")
+            total_duration = time.time() - start_time
+            logger.error(f"💥 NEWS_FETCH: Critical error in fetch_all_news after {total_duration:.2f}s: {e}")
+            logger.error(f"📍 NEWS_FETCH: Full traceback: {traceback.format_exc()}")
             return []
 
     def cleanup_seen_news(self, hours: int = 24):

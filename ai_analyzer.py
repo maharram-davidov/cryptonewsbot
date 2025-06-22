@@ -1,25 +1,40 @@
 import google.generativeai as genai
 import logging
+import time
+import traceback
 from typing import Optional, Dict, List
 from config import GEMINI_API_KEY, AI_SETTINGS
 from news_fetcher import NewsItem
 from datetime import datetime
 
+# Enhanced logging setup
 logger = logging.getLogger(__name__)
+performance_logger = logging.getLogger('performance')
 
 class AIAnalyzer:
     def __init__(self):
+        logger.info("🧠 AI_ANALYZER: Initializing AI Analyzer")
+        
         if GEMINI_API_KEY:
-            genai.configure(api_key=GEMINI_API_KEY)
-            self.model = genai.GenerativeModel(AI_SETTINGS['model'])
+            try:
+                genai.configure(api_key=GEMINI_API_KEY)
+                self.model = genai.GenerativeModel(AI_SETTINGS['model'])
+                logger.info(f"✅ AI_ANALYZER: Gemini model '{AI_SETTINGS['model']}' initialized successfully")
+            except Exception as e:
+                logger.error(f"💥 AI_ANALYZER: Failed to initialize Gemini model: {e}")
+                self.model = None
         else:
-            logger.warning("Gemini API key təyin edilməyib")
+            logger.warning("⚠️  AI_ANALYZER: Gemini API key not configured - fallback mode only")
             self.model = None
             
     def analyze_news(self, news_item: NewsItem) -> Optional[str]:
         """Xəbəri AI ilə analiz edir (sync)"""
+        start_time = time.time()
+        logger.info(f"🔍 AI_ANALYSIS: Starting analysis for: {news_item.title[:50]}...")
+        
         try:
             if not self.model:
+                logger.info("🔄 AI_ANALYSIS: Using fallback analysis (no AI model)")
                 return self._fallback_analysis(news_item)
             
             # Xəbər məzmununu hazırlayır
@@ -34,15 +49,23 @@ URL: {news_item.url}
             prompt = AI_SETTINGS['analysis_prompt'].format(news_content=news_content)
             
             # Gemini API çağırır
+            logger.info("🤖 AI_ANALYSIS: Calling Gemini API for analysis")
             response = self._call_gemini(prompt)
             
+            duration = time.time() - start_time
+            performance_logger.info(f"AI_ANALYSIS completed in {duration:.2f}s")
+            
             if response:
+                logger.info("✅ AI_ANALYSIS: Gemini analysis completed successfully")
                 return response
             else:
+                logger.warning("⚠️  AI_ANALYSIS: Gemini returned empty response, using fallback")
                 return self._fallback_analysis(news_item)
                 
         except Exception as e:
-            logger.error(f"AI analiz xətası: {e}")
+            duration = time.time() - start_time
+            logger.error(f"💥 AI_ANALYSIS: Analysis failed after {duration:.2f}s: {e}")
+            logger.error(f"📍 AI_ANALYSIS: Traceback: {traceback.format_exc()}")
             return self._fallback_analysis(news_item)
     
     def _call_gemini(self, prompt: str) -> Optional[str]:

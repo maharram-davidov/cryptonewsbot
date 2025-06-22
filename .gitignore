@@ -216,6 +216,8 @@ bot.log
 news.log
 error.log
 debug.log
+logs/
+performance.log
 
 # Database files
 *.db
