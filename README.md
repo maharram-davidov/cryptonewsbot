@@ -1,415 +1,174 @@
-# 🤖 Kripto Xəbər Botu (Crypto News Bot)
+# 🤖 Crypto News Monitoring & Analysis Bot
 
-Real-time kripto xəbərlərini AI analizi və günlük özet ilə birlikdə paylaşan akıllı Telegram bot.
+**Crypto News Bot** is an event-driven Telegram bot designed to collect, analyze, and summarize cryptocurrency-related news in real time. The system combines RSS-based data ingestion with AI-assisted analysis to provide timely market insights and daily summaries.
 
-## 🎯 Əsas Funksiyalar
+---
 
-- **📰 Real-time xəbər paylaşımı**: CoinDesk, The Block, Crypto News, NewsBTC kimi mənbələrdən
-- **🧠 AI analizi**: Hər xəbər üçün Google Gemini 2.0 Flash ilə market təsiri və risk analizi
-- **🌙 Günlük AI özet**: Hər gecə 00:05'tə günün ən vacib xəbərlərinin AI analizi
-- **⚙️ Kullanıcı ayarları**: Anlık bildirimləri və günlük özeti ayrı ayrı açıp bağlama
-- **💾 Kalıcı veri saklama**: Abunəlik və ayar bilgiləri JSON fayllarında saxlanır
-- **🕐 Azərbaycan saatı**: Xəbərlərdə tarix və saat AZT (Asia/Baku) zona saatı ilə göstərilir
-- **📊 Sinxron arxitektura**: Stabil və sürətli işləmə üçün sinxron kod strukturu
-- **⚡ Avtomatik yenilənmə**: 90 saniyədə bir yeni xəbər yoxlanması
-- **👥 İntellektual abunəlik sistemi**: İstifadəçilər bildirim tercihləri edə bilərlər
+## 🎯 Project Objectives
 
+* **Real-time Monitoring:** Track major cryptocurrency news sources 24/7.
+* **AI Insights:** Provide concise AI-assisted analysis for every news item.
+* **Automation:** Generate daily market summaries automatically.
+* **Personalization:** Configurable notification preferences for every user.
+* **Stability:** Lightweight architecture designed for continuous operation.
 
-## ✨ Yeni Özellikler
+---
 
-### 🎛️ Kullanıcı Bildirim Ayarları
-- **🔔 Anlık Xəbərlər**: Real-time kripto xəbərlərini açıp bağlaya bilərsiniz
-- **📅 Günlük Özet**: Gece sabit saatdəki AI özetini açıp bağlaya bilərsiniz  
-- **⚙️ Kolay Yönetim**: `/settings` komutu ilə buton tabanlı kontrol
-- **🎯 Kişiselleştirme**: Hər istifadəçi öz tercihini yarada bilər
+## 🧠 Core Features
 
-### 🌙 Günlük AI Özet Sistemi
-- **🕐 Otomatik Zamanlama**: Hər gecə 00:05'tə otomatik özet
-- **🤖 AI Analizi**: Son 24 saatın ən önemli xəbərlərinin Gemini analizi
-- **📊 Market Durumu**: Günlük trend analizi (Bullish/Bearish/Neytral)
-- **📋 Özet Format**: Önemli xəbərlər, bazar analizi və risk seviyyəsi
-- **🔧 Manuel Kontrolü**: Adminlər istədikləri vaxt `/daily_summary` ilə gönderə bilərlər
+### 🔹 Real-Time News Monitoring
 
-### 💾 Kalıcı Veri Saklama Sistemi
-- **👥 Abunəlik Verisi**: `subscribers.json` dosyasında kalıcı saklama
-- **⚙️ Kullanıcı Ayarları**: `user_settings.json` dosyasında tercihlər
-- **🔄 Bot Yeniden Başlatma**: Veriler kaybolmadan sistem devam eder
-- **🛡️ Güvenlik**: Hassas dosyalar `.gitignore` içinde korunur
+* **RSS Ingestion:** Data from major crypto news outlets.
+* **Smart Polling:** Periodic checks (default: 90s) to ensure zero latency.
+* **Deduplication:** Advanced caching to prevent duplicate alerts.
 
+### 🔹 AI-Assisted News Analysis
 
+* **Engine:** Powered by **Google Gemini**.
+* **Classification:** Market impact (Bullish / Bearish / Neutral).
+* **Risk Assessment:** Risk level estimation (Low / Medium / High).
+* **Summarization:** Short, human-readable insights.
 
-## 🛠️ Texniki Xüsusiyyətlər
+### 🔹 Daily AI Market Summary
 
-- **Python-telegram-bot v20.x**: Modern async handler dəstəyi
-- **Dual Bot System**: Həm async (`telegram_bot.py`) həm sync (`bot.py`) versiyalar
-- **Windows/Linux uyğunluğu**: Bütün platformlarda stabil çalışma
-- **RSS əsaslı**: API limitləri olmadan xəbər çəkilməsi
-- **JSON Data Persistence**: Kullanıcı verilerinin kalıcı saklanması
+* **Aggregation:** Summarizes the most relevant news from the last 24 hours.
+* **Sentiment Tracking:** Overall market sentiment estimation.
+* **Admin Control:** Manual trigger option for on-demand summaries.
 
-## 🚀 Quraşdırma
+### 🔹 User Preference Management
 
-### 1. Layihəni klonlayın
-```bash
-git clone https://github.com/your-username/crypto-news-bot.git
-cd crypto-news-bot
+* Inline button-based configuration (`/settings`).
+* Persistent storage for notification toggles (Instant alerts vs. Daily summaries).
+
+---
+
+## 🏗️ System Architecture
+
+The bot follows a modular and event-driven design:
+
+```text
+CryptoNewsBot/
+├── main.py               # Application entry point
+├── telegram_bot.py       # Async Telegram bot (PTB v20.x)
+├── news_fetcher.py       # RSS ingestion and parsing
+├── ai_analyzer.py        # AI-based analysis module
+├── config.py             # Configuration and parameters
+├── test_bot.py           # Component-level testing
+└── storage/              # JSON-based persistence (User data & Cache)
+
 ```
 
-### 2. Virtual environment yaradın
+### Key Technical Highlights:
+
+* **Separation of Concerns:** Clear boundaries between fetching, analysis, and delivery.
+* **Stateless Processing:** Message processing is stateless while maintaining persistent user configurations.
+* **Rate-Limit Friendly:** RSS-based ingestion avoids heavy API costs or limitations.
+
+---
+
+## ⚙️ Technologies Used
+
+| Technology | Purpose |
+| --- | --- |
+| **Python** | Core programming language |
+| **python-telegram-bot** | Async bot framework (v20.x) |
+| **Google Gemini API** | AI-driven sentiment & risk analysis |
+| **Feedparser** | RSS news ingestion |
+| **APScheduler** | Scheduled jobs and automation |
+| **JSON Storage** | Lightweight persistence |
+
+---
+
+## 🚀 Installation & Setup
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/maharram-davidov/cryptonews-tgbot.git
+cd cryptonews-tgbot
+
+```
+
+
+2. **Create and activate virtual environment**
 ```bash
 python -m venv .venv
-# Windows
+# Windows:
 .venv\Scripts\activate
-# Linux/Mac
+# Linux/macOS:
 source .venv/bin/activate
+
 ```
 
-### 3. Tələb olunan paketləri yükləyin
+
+3. **Install dependencies**
 ```bash
 pip install -r requirements.txt
+
 ```
 
-### 4. Environment dəyişənlərini təyin edin
 
-`env_example.txt` faylını `.env` adı ilə kopyalayın və doldurün:
-
+4. **Configure environment variables**
+Create a `.env` file based on `env_example.txt`:
 ```env
-# Telegram Bot Configuration
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+GEMINI_API_KEY=your_gemini_api_key
+ADMIN_USER_IDS=123456789
 
-# Google Gemini Configuration  
-GEMINI_API_KEY=your_gemini_api_key_here
-
-
-
-# Admin User IDs (comma separated)
-ADMIN_USER_IDS=123456789,987654321
 ```
 
-### 5. API Key-lərini əldə edin
 
-#### Telegram Bot Token:
-1. [@BotFather](https://t.me/botfather) ilə əlaqə saxlayın
-2. `/newbot` komandası ilə yeni bot yaradın
-3. Bot token-ını kopyalayın
-
-#### Google Gemini API Key:
-1. [Google AI Studio](https://makersuite.google.com/app/apikey) saytına daxil olun
-2. Google hesabınızla giriş edin
-3. "Create API Key" düyməsini basın
-
-## 🎮 İstifadə
-
-### Modern Bot (Async) - Tövsiyə olunan:
+5. **Run the bot**
 ```bash
-python main.py  # telegram_bot.py istifadə edir
-```
-
-### Legacy Bot (Sync) - Köhnə versiyalar üçün:
-```bash
-# main.py'de bot.py import edin
 python main.py
-```
-
-### Test etmək:
-```bash
-python test_bot.py
-```
-
-
-
-## 📋 Bot Komandaları
-
-### 👤 İstifadəçi Komandaları
-- `/start` - Botu başlat və tanıtım menüsü
-- `/subscribe` - Xəbər abunəliyini aktivləşdir
-- `/unsubscribe` - Abunəliyi dayandır  
-- `/settings` - **YENİ!** Bildirim ayarlarını idarə et
-- `/latest` - Son 3 xəbəri göstər
-- `/status` - Bot statusu və statistika
-- `/help` - Kömək məlumatı
-
-### 🔧 Admin Komandaları
-- `/admin` - Admin paneli və statistikalar
-- `/daily_summary` - **YENİ!** Manuel günlük özet göndər
-- `/reset_news` - Görülən xəbər cache'ini temizlə
-
-### 🎛️ İnline Butonlar
-- **📰 Abunə ol** - Tez abunəlik
-- **📊 Son xəbərlər** - Son xəbərləri göstər
-- **⚙️ Ayarlar** - Bildirim ayarları menüsü
-- **ℹ️ Kömək** - Yardım məlumatları
-
-## 🎯 Kullanıcı Ayarları Sistemi
-
-### ⚙️ Ayarlar Menüsü (`/settings`)
-```
-⚙️ BİLDİRİM AYARLARI
-
-👤 İstifadəçi: Ali
-📊 Abunəlik statusu: Aktiv
-
-🔔 Anlık Xəbərlər: 🔔 AÇIQ
-   • Real-time kripto xəbərləri
-   • Gün ərzində gələn yeniliklər
-
-📅 Günlük Özet: 📅 AÇIQ  
-   • Hər gecə saat 00:05'tə
-   • AI ilə hazırlanan günün özeti
-
-💡 İpucu: Anlık xəbərləri bağlasanız da günlük özet almağa davam edə bilərsiniz!
-```
-
-### 🎮 Kullanım Senaryaları
-1. **📱 Sadece Anlık Haberler**: Anlık açık, günlük kapalı
-2. **🌙 Sadece Günlük Özet**: Anlık kapalı, günlük açık  
-3. **📺 Tam Bilgilendirme**: İkisi də açık
-4. **🔕 Geçici Susturma**: İkisi də kapalı
-
-## 🏗️ Layihə Strukturu
 
 ```
-CryptoNewsBot/
-├── main.py                   # Ana fayl - botu işə salır
-├── telegram_bot.py           # Modern async bot (PTB v20.x) 
-├── bot.py                    # Legacy sync bot (PTB v13.15)
-├── config.py                 # Konfiqurasiya və parametrlər
-├── news_fetcher.py           # Xəbər çəkmə sinifləri
-├── ai_analyzer.py            # AI analiz funksiyaları
 
-├── test_bot.py               # Test skripti
-├── requirements.txt          # Python paketləri
-├── env_example.txt           # Environment nümunəsi
-├── railway.toml              # Deploy konfigürasyonu
-├── runtime.txt               # Python versiyası
-├── subscribers.json          # 💾 Abunə verisi (auto-generated)
-├── user_settings.json        # 💾 Kullanıcı ayarları (auto-generated)
-├── seen_news.json            # 💾 Görülən xəbər cache (auto-generated)
 
-└── README.md                # Bu fayl
-```
 
-## ⚙️ Konfiqurasiya
+---
 
-`config.py` faylında aşağıdakı parametrləri dəyişə bilərsiniz:
+## 📋 Bot Commands
 
-```python
-BOT_SETTINGS = {
-    'check_interval': 90,       # Yoxlama intervalı (saniyə) - 1.5 dəqiqə
-    'max_news_per_check': 5,    # Hər yoxlamada max xəbər sayı
-    'ai_analysis': True,        # AI analizi aktiv/deaktiv
-    'send_to_channels': True    # Kanallara göndərmə
-}
+| User Command | Description |
+| --- | --- |
+| `/start` | Initialize the bot |
+| `/subscribe` | Enable news notifications |
+| `/unsubscribe` | Disable notifications |
+| `/settings` | Manage notification preferences |
+| `/latest` | Fetch the most recent news |
+| `/help` | Detailed usage instructions |
 
-AI_SETTINGS = {
-    'model': 'gemini-2.0-flash',    # AI model
-    'max_tokens': 200,              # Maksimum token sayı
-    'temperature': 0.7,             # Yaradıcılıq səviyyəsi
-    'analysis_prompt': "..."        # AI analiz prompt-u
-}
-```
+**Admin Commands:**
 
-## 📊 Xəbər Mənbələri
+* `/daily_summary`: Trigger daily summary manually.
+* `/reset_news`: Clear news cache for debugging.
 
-1. **CoinDesk**: RSS feed (`https://www.coindesk.com/arc/outboundfeeds/rss/`)
-2. **The Block**: RSS feed (`https://www.theblock.co/rss.xml`)
-3. **Crypto News**: RSS feed (`https://crypto.news/feed/`)
-4. **NewsBTC**: RSS feed (`https://www.newsbtc.com/feed/`)
+---
 
-**Qeyd**: Bütün mənbələr RSS vasitəsi ilə çəkilir, API key tələb etmir.
+## 📊 News Sources
 
-## 🧠 AI Analizi
+The bot currently monitors high-authority sources via RSS:
 
-### 📰 Anlık Xəbər Analizi
-Hər xəbər üçün Google Gemini 2.0 Flash modeli ilə:
-- **🔥 Market Təsiri**: Bullish/Bearish/Neytral
-- **📊 Risk Səviyyəsi**: Aşağı/Orta/Yüksək  
-- **💡 Qısa Analiz**: 1-2 cümlə ilə xəbərin qiymətləndirilməsi
-- **🇦🇿 Azərbaycan dilində**: Bütün analizlər Azərbaycan dilində
+* CoinDesk
+* The Block
+* Crypto News
+* NewsBTC
 
-### 🌙 Günlük Özet Analizi
-```
-🌙 GÜNLÜK XƏBƏRLƏRİN ÖZETİ
-📅 Tarix: 15.12.2024
-📊 Ümumi Bazar Durumu: Bullish
+---
 
-🔥 ÖNƏMLİ XƏBƏRLƏR:
-• Bitcoin 42000$ səviyyəsini keçdi
-• Ethereum'da yeni protokol güncellemesi
-• BlackRock-un Bitcoin ETF başvurusu
+## 🎓 Academic Relevance
 
-📈 BAZAR ANALİZİ:
-• Market trend-i: Yükselen
-• Risk seviyyesi: Orta
-• Yatırım tavsiyesi: Dikkatli iyimser
+This project is an excellent demonstration of:
 
-🎯 QISA NƏTICƏ:
-Son 24 saatda pozitif gelişmeler gözlemlendi.
-```
+1. **Applied AI:** Real-world implementation of LLMs in financial news.
+2. **Software Architecture:** Practical application of event-driven and modular design.
+3. **Data Pipelines:** Real-time data ingestion and processing workflows.
+4. **User Experience:** Implementing stateful interactions in a stateless bot environment.
 
-## 🕐 Zaman Zona Dəstəyi
+---
 
-- Bütün xəbər tarixləri **Azərbaycan saatı (AZT)** ilə göstərilir
-- UTC-dən avtomatik çevrilmə: `Asia/Baku` timezone
-- Format: `DD.MM.YYYY HH:MM (AZT)`
-- Günlük özet: Hər gecə **00:05 AZT**
+## 📄 License
 
-## 💾 Veri Saklama Sistemi
+This project is released under the **MIT License**.
 
-### 📁 Otomatik Oluşan Dosyalar
-- **`subscribers.json`**: Abunə olmuş kullanıcıların listəsi
-- **`user_settings.json`**: Hər kullanıcının bildirim tercihleri
-- **`seen_news.json`**: Görülən xəbər cache'i (dublikat önleme)
-
-### 🛡️ Güvenlik
-Tüm kullanıcı verisi dosyaları `.gitignore` içində korunur ve git'e commit edilmez.
-
-### 🔄 Veri Formatları
-```json
-// subscribers.json
-{
-  "subscribers": [123456789, 987654321],
-  "last_updated": "2024-12-15T10:30:00",
-  "total_count": 2
-}
-
-// user_settings.json  
-{
-  "123456789": {
-    "instant_notifications": true,
-    "daily_summary": true,
-    "joined_date": "2024-12-15T10:30:00",
-    "last_activity": "2024-12-15T10:30:00"
-  }
-}
-```
-
-## 📦 Paket Versiyaları
-
-```
-# Modern Version (telegram_bot.py)
-python-telegram-bot>=20.0   # Modern async dəstək
-asyncio                      # Async işlemler
-
-# Legacy Version (bot.py) 
-python-telegram-bot==13.15  # Stabil sinxron dəstək
-
-# Ortak Paketler
-requests==2.31.0             # HTTP sorğuları
-feedparser==6.0.10           # RSS parser
-google-generativeai==0.3.2   # Gemini AI
-beautifulsoup4==4.12.2       # HTML parser
-python-dotenv==1.0.0         # Environment dəyişənləri
-APScheduler==3.6.3           # Job scheduler
-pytz==2023.3                 # Timezone dəstəyi
-```
-
-## 📝 Log və Monitoring
-
-- Bütün fəaliyyətlər `crypto_bot.log` faylında qeyd olunur
-- Real-time konsol çıxışı mövcuddur
-- Xəta hallarında avtomatik recovery
-- Job queue ilə avtomatik xəbər yoxlanması
-- Kullanıcı ayar değişikliklərinin loglanması
-- Günlük özet gönderim istatistikləri
-
-## 🔧 Təkmilləşdirmə
-
-### Yeni xəbər mənbəyi əlavə etmək:
-
-1. `config.py`-də `NEWS_SOURCES`-ə əlavə edin:
-```python
-'new_source': {
-    'rss_url': 'https://example.com/rss.xml',
-    'name': 'New Source'
-}
-```
-
-2. `news_fetcher.py`-də yeni fetch funksiyası yazın
-3. `fetch_all_news()` metoduna daxil edin
-
-### AI analiz modelini dəyişmək:
-
-`config.py`-də `AI_SETTINGS` bölməsində model parametrlərini dəyişin:
-```python
-AI_SETTINGS = {
-    'model': 'gemini-pro',  # və ya başqa model
-    'max_tokens': 300,
-    'temperature': 0.5
-}
-```
-
-### Günlük özet saatini dəyişmək:
-
-`telegram_bot.py` və ya `bot.py`-də job queue konfigurasiyasını dəyişin:
-```python
-job_queue.run_daily(
-    self.daily_summary_job,
-    time=datetime.now().time().replace(hour=1, minute=0)  # 01:00'da
-)
-```
-
-## 🚨 Problemlər və Həllər
-
-### Bot başlamır:
-- Virtual environment-in aktivləşdirildiyini yoxlayın
-- `pip install -r requirements.txt` ilə paketləri yenidən yükləyin
-- `.env` faylının mövcud olduğunu təsdiq edin
-
-### Abunəlik verisi kaybolur:
-- ✅ **Həll edildi!** Artık `subscribers.json` faylında kalıcı saklama
-- Bot yeniden başladıldığında veriler otomatik yüklənir
-
-### Xəbər çəkilmir:
-- İnternet bağlantısını yoxlayın
-- RSS URL-lərinin aktiv olduğunu təsdiq edin
-- `test_bot.py` ilə komponentləri test edin
-
-### AI analizi işləmir:
-- Gemini API key-inin düzgün olduğunu yoxlayın
-- API limitlərini yoxlayın
-- Fallback analiz sistemi avtomatik işləyəcək
-
-### Günlük özet gəlmir:
-- Kullanıcı ayarlarında günlük özet açık olduğunu yoxlayın (`/settings`)
-- Bot timezone ayarlarını yoxlayın (AZT - Asia/Baku)
-- Manuel test üçün `/daily_summary` admin komandası istifadə edin
-
-### Bildirimlər gəlmir:
-- `/settings` komandası ilə bildirimlerin açık olduğunu yoxlayın
-- Bot token-ının düzgün olduğunu yoxlayın
-- Botun istifadəçi tərəfindən bloklanmadığını yoxlayın
-
-## 🆕 Son Yeniliklər (v2.0)
-
-- ✅ **Kullanıcı Ayarları Sistemi**: Bildirimləri ayrı ayrı kontrol
-- ✅ **Günlük AI Özet**: Hər gecə otomatik özet gönderimi  
-- ✅ **Kalıcı Veri Saklama**: JSON dosyalarında kullanıcı verilerinin korunması
-- ✅ **Dual Bot System**: Həm async həm sync versiyalar
-- ✅ **İntelligent Broadcasting**: Kullanıcı tercihlərinə görə gönderim
-- ✅ **Modern UI**: İnline butonlar ilə kolay yönetim
-- ✅ **Admin Panel Geliştirmeleri**: Manual özet və detaylı istatistikler
-- ✅ **PTB v20.x Dəstəyi**: Modern async handler yapısı
-- ✅ **Azərbaycan saatı**: AZT timezone dəstəyi
-- ✅ **Gemini 2.0 Flash**: Yeni AI model dəstəyi
-- ✅ **Windows/Linux uyğunluğu**: Cross-platform stabil çalışma
-
-## 📊 Sistem Özellikleri
-
-### 🎯 Performans
-- **⚡ Hızlı Yanıt**: İnline butonlarla anında ayar değişimi
-- **📊 Akıllı Cache**: Görülən xəbərlərin optimize edilmiş saklanması
-- **🔄 Rate Limiting**: Telegram API limitlərinə uygun gönderim
-- **💾 Memory Optimization**: Veri saklama için optimize edilmiş JSON struktur
-
-### 🛡️ Güvenlik
-- **🔐 Admin Kontrolü**: Hassas komandlar için admin doğrulaması
-- **🚫 Data Protection**: Hassas dosyalar git'e commit edilmez
-- **🔍 Input Validation**: Kullanıcı girişlərinin doğrulanması
-- **📝 Audit Logging**: Tüm önemli işlemlerin loglanması
-
-## 📞 Dəstək
-
-Problemlər üçün:
-- GitHub Issues bölməsində issue açın
-- Telegram: @davudov07
-- Email: destek@cryptobot.az
+---
